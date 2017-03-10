@@ -640,6 +640,12 @@ std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
     return ret;
 }
 
+inline
+bool networking_init()
+{
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2,2), &wsaData);
+}
 
 inline
 tcp_sock tcp_host(const std::string& serverport = SERVERPORT)
