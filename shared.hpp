@@ -999,6 +999,14 @@ struct byte_vector
         }
     }
 
+    void push_vector(const byte_vector& vec)
+    {
+        for(int i=0; i<vec.ptr.size(); i++)
+        {
+            ptr.push_back(vec.ptr[i]);
+        }
+    }
+
     std::vector<char> data()
     {
         return ptr;
