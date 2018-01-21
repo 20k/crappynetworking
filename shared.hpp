@@ -6,6 +6,7 @@
 
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
+#include <assert.h>
 
 #define SERVERPORT "6950"
 
@@ -23,19 +24,20 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-struct tcp_sock
+struct udp_sock
 {
     int sock;
     bool good;
+    bool udp_connected = false;
 
-    tcp_sock(int _sock)
+    udp_sock(int _sock)
     {
         sock = _sock;
 
         good = sock >= 0;
     }
 
-    tcp_sock()
+    udp_sock()
     {
         sock = -1;
 
@@ -147,24 +149,11 @@ struct tcp_sock
         return addr;
     }
 
-    bool operator==(const tcp_sock& o)
+    bool operator==(const udp_sock& o)
     {
         return sock == o.sock;
     }
 };
-
-/*inline
-bool operator==(sockaddr_storage s1, sockaddr_storage s2)
-{
-    char* ip1 = (char*)get_in_addr((sockaddr*)&s1);
-
-    char* ip2 = (char*)get_in_addr((sockaddr*)&s2);
-
-    if(strcmp(ip1, ip2) == 0)
-        return true;
-
-    return false;
-}*/
 
 inline
 bool operator==(sockaddr_storage& s1, sockaddr_storage& s2)
@@ -198,26 +187,7 @@ std::string get_addr_port(sockaddr_storage& addr)
     return std::string(std::to_string(theirport));
 }
 
-struct udp_sock : tcp_sock
-{
-    bool udp_connected = false;
-
-    udp_sock(int _sock)
-    {
-        sock = _sock;
-
-        good = sock >= 0;
-    }
-
-    udp_sock()
-    {
-        sock = -1;
-
-        good = false;
-    }
-};
-
-inline
+/*inline
 bool sock_disable_nagle(tcp_sock& sock)
 {
     ///trying to disable nagle on an invalid socket.
@@ -243,10 +213,10 @@ bool sock_disable_nagle(int sock)
     tcp_sock s(sock);
 
     return sock_disable_nagle(s);
-}
+}*/
 
 inline
-bool sock_set_non_blocking(tcp_sock& sock, int is_non_blocking)
+bool sock_set_non_blocking(udp_sock& sock, int is_non_blocking)
 {
     if(sock.invalid())
         return true;
@@ -266,13 +236,13 @@ bool sock_set_non_blocking(tcp_sock& sock, int is_non_blocking)
 inline
 bool sock_set_non_blocking(int sock, int is_non_blocking)
 {
-    tcp_sock s(sock);
+    udp_sock s(sock);
 
     return sock_set_non_blocking(s, is_non_blocking);
 }
 
 inline
-bool sock_readable(tcp_sock& sock)
+bool sock_readable(udp_sock& sock)
 {
     //if(!sock.valid())
     //    return false;
@@ -294,7 +264,7 @@ bool sock_readable(tcp_sock& sock)
 }
 
 inline
-bool sock_writable(tcp_sock& sock, long seconds = 0, long milliseconds = 0)
+bool sock_writable(udp_sock& sock, long seconds = 0, long milliseconds = 0)
 {
     //if(!sock.valid())
     //    return false;
@@ -318,7 +288,7 @@ bool sock_writable(tcp_sock& sock, long seconds = 0, long milliseconds = 0)
 inline
 bool sock_readable(int sock)
 {
-    tcp_sock s(sock);
+    udp_sock s(sock);
 
     return sock_readable(s);
 }
@@ -326,30 +296,30 @@ bool sock_readable(int sock)
 inline
 bool sock_writable(int sock, long seconds = 0, long milliseconds = 0)
 {
-    tcp_sock s(sock);
+    udp_sock s(sock);
 
     return sock_writable(s, seconds, milliseconds);
 }
 
 inline
-tcp_sock conditional_accept(tcp_sock& sock)
+udp_sock conditional_accept(udp_sock& sock)
 {
     if(!sock_readable(sock))
-        return tcp_sock(-1);
+        return udp_sock(-1);
 
     struct sockaddr_storage their_addr;
     socklen_t addr_len = sizeof their_addr;
 
     int new_fd = accept(sock.get(), (struct sockaddr *)&their_addr, &addr_len);
 
-    tcp_sock new_sock(new_fd);
+    udp_sock new_sock(new_fd);
 
-    sock_disable_nagle(new_sock);
+    //sock_disable_nagle(new_sock);
 
     return new_sock;
 }
 
-inline
+/*inline
 int tcp_send(tcp_sock& sock, const char* data, int len)
 {
     if(len == 0 || data == nullptr || sock.invalid())
@@ -379,6 +349,45 @@ inline
 int tcp_send(tcp_sock& sock, const std::string& data)
 {
     return tcp_send(sock, data.c_str(), data.length());
+}*/
+
+inline
+int udp_send(udp_sock& sock, const char* data, int len)
+{
+    if(len == 0)
+        return 0;
+
+    if(data == nullptr)
+        return 0;
+
+    if(sock.invalid())
+        return -1;
+
+    int num = -1;
+
+    if((num = send(sock.get(), data, len, 0)) == -1)
+    {
+        sock.make_invalid();
+
+        return -1;
+    }
+
+    return num;
+}
+
+inline
+int udp_send(udp_sock& sock, const std::vector<char>& msg)
+{
+    if(msg.size() == 0)
+        return 0;
+
+    return udp_send(sock, &msg[0], msg.size());
+}
+
+inline
+int udp_send(udp_sock& sock, const std::string& data)
+{
+    return udp_send(sock, data.c_str(), data.length());
 }
 
 ///dont use, internal
@@ -515,13 +524,6 @@ std::vector<char> udp_receive_from(udp_sock& sock, sockaddr_storage* store, int*
     return ret;
 }
 
-///only for connected obvs
-inline
-int udp_send(udp_sock& sock, const std::vector<char>& data)
-{
-    return tcp_send(sock, data);
-}
-
 inline
 int udp_send_to(udp_sock& sock, const std::vector<char>& data, const sockaddr* to_addr)
 {
@@ -556,7 +558,7 @@ int udp_send_to(udp_sock& sock, const std::vector<char>& data, const sockaddr* t
     return buf;
 }*/
 
-inline
+/*inline
 std::vector<char> tcp_recv(tcp_sock& sock)
 {
     if(sock.invalid())
@@ -581,7 +583,7 @@ std::vector<char> tcp_recv(tcp_sock& sock)
     std::vector<char> ret(buf, buf + num);
 
     return ret;
-}
+}*/
 
 /*inline
 std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
@@ -611,7 +613,7 @@ std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
     return ret;
 }*/
 
-inline
+/*inline
 std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
 {
     constexpr int MAXDATASIZE = 10000;
@@ -638,7 +640,7 @@ std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
     std::vector<char> ret(buf, buf + num);
 
     return ret;
-}
+}*/
 
 inline
 bool networking_init()
@@ -647,7 +649,7 @@ bool networking_init()
     WSAStartup(MAKEWORD(2,2), &wsaData);
 }
 
-inline
+/*inline
 tcp_sock tcp_host(const std::string& serverport = SERVERPORT)
 {
     WSADATA wsaData;
@@ -702,7 +704,7 @@ tcp_sock tcp_host(const std::string& serverport = SERVERPORT)
     }
 
     return tcp_sock(sockfd);
-}
+}*/
 
 inline
 udp_sock udp_host(const std::string& serverport = SERVERPORT)
@@ -871,7 +873,7 @@ struct sock_info
 
     int get()
     {
-        sock_disable_nagle(sock);
+        //sock_disable_nagle(sock);
 
         finished = true;
 
@@ -882,7 +884,7 @@ struct sock_info
 ///this will eventually be a timeout delay
 ///hoo boy, so i'm going to need to return the socket pretimeout, and then poll it for
 ///connection status, along with a clock, and then allow it to timeout when the delay has been exceeded
-inline
+/*inline
 sock_info tcp_connect(const std::string& address, const std::string& port, long int seconds = 0, long int microseconds = 0)
 {
     static bool loaded = false;
@@ -964,7 +966,7 @@ inline
 sock_info tcp_connect(const std::string& address, long int seconds = 0, long int microseconds = 0)
 {
     return tcp_connect(address, SERVERPORT, seconds, microseconds);
-}
+}*/
 
 struct byte_vector
 {
