@@ -187,34 +187,6 @@ std::string get_addr_port(sockaddr_storage& addr)
     return std::string(std::to_string(theirport));
 }
 
-/*inline
-bool sock_disable_nagle(tcp_sock& sock)
-{
-    ///trying to disable nagle on an invalid socket.
-    ///Should this be an error, or expected behaviour?
-    if(sock.invalid())
-        return true;
-
-    BOOL off = false;
-
-    int ret = setsockopt(sock.get(), IPPROTO_TCP, TCP_NODELAY, (const char*)&off, sizeof(off));
-
-    if(ret != 0)
-    {
-        printf("Error %i disabling nagle\n", ret);
-    }
-
-    return ret == 0;
-}
-
-inline
-bool sock_disable_nagle(int sock)
-{
-    tcp_sock s(sock);
-
-    return sock_disable_nagle(s);
-}*/
-
 inline
 bool sock_set_non_blocking(udp_sock& sock, int is_non_blocking)
 {
@@ -314,42 +286,8 @@ udp_sock conditional_accept(udp_sock& sock)
 
     udp_sock new_sock(new_fd);
 
-    //sock_disable_nagle(new_sock);
-
     return new_sock;
 }
-
-/*inline
-int tcp_send(tcp_sock& sock, const char* data, int len)
-{
-    if(len == 0 || data == nullptr || sock.invalid())
-        return -1;
-
-    int num = -1;
-
-    if((num = send(sock.get(), data, len, 0)) == -1)
-    {
-        //printf("Error in TCP send\n");
-
-        sock.make_invalid();
-
-        return -1;
-    }
-
-    return num;
-}
-
-inline
-int tcp_send(tcp_sock& sock, const std::vector<char>& msg)
-{
-    return tcp_send(sock, &msg.front(), msg.size());
-}
-
-inline
-int tcp_send(tcp_sock& sock, const std::string& data)
-{
-    return tcp_send(sock, data.c_str(), data.length());
-}*/
 
 inline
 int udp_send(udp_sock& sock, const char* data, int len)
@@ -437,38 +375,6 @@ inline bool udp_pipe_connect(udp_sock& sock, const struct sockaddr *addr)
     return true;
 }
 
-/*inline
-std::vector<char> udp_receive_bind(udp_sock& sock)
-{
-    if(sock.invalid())
-        return std::vector<char>();
-
-    constexpr int MAXDATASIZE = 10000;
-    static char buf[MAXDATASIZE];
-
-    sockaddr_storage store;
-    int fromlen = sizeof(store);
-
-    int num = -1;
-
-    if ((num = recvfrom(sock.get(), buf, MAXDATASIZE-1, 0, (sockaddr*)&store, &fromlen)) == -1) {
-
-        //if(errno != EAGAIN && errno != EWOULDBLOCK)
-        //    sock.make_invalid();
-
-        return std::vector<char>();
-    }
-
-    if(!sock.udp_connected)
-        udp_pipe_connect(sock, (const sockaddr*)&store);
-
-    buf[num] = '\0';
-
-    std::vector<char> ret(buf, buf + num);
-
-    return ret;
-}*/
-
 inline std::vector<char> udp_recv(udp_sock& sock)
 {
     if(sock.invalid())
@@ -537,174 +443,12 @@ int udp_send_to(udp_sock& sock, const std::vector<char>& data, const sockaddr* t
     return ret;
 }
 
-/*char* tcp_recv_raw(int sock, int* len)
-{
-    constexpr int MAXDATASIZE = 1000;
-    static char buf[MAXDATASIZE];
-
-    int num = -1;
-
-    if ((num = recv(sock, buf, MAXDATASIZE-1, 0)) == -1) {
-        printf("Error in TCP recv\n");
-
-        *len = num;
-        return buf;
-    }
-
-    buf[num] = '\0';
-
-    *len = num;
-
-    return buf;
-}*/
-
-/*inline
-std::vector<char> tcp_recv(tcp_sock& sock)
-{
-    if(sock.invalid())
-        return std::vector<char>();
-
-    constexpr int MAXDATASIZE = 10000;
-    static char buf[MAXDATASIZE];
-
-    int num = -1;
-
-    if ((num = recv(sock.get(), buf, MAXDATASIZE-1, 0)) == -1) {
-        //printf("Client disconnected or recv error\n");
-
-        if(errno != EAGAIN && errno != EWOULDBLOCK)
-            sock.make_invalid();
-
-        return std::vector<char>();
-    }
-
-    buf[num] = '\0';
-
-    std::vector<char> ret(buf, buf + num);
-
-    return ret;
-}*/
-
-/*inline
-std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
-{
-    constexpr int MAXDATASIZE = 10000;
-    static char buf[MAXDATASIZE];
-
-    int receive_accum = 0;
-
-    while(receive_accum < 0)
-
-    int num = -1;
-
-    if ((num = recv(sock.get(), buf, length, 0)) == -1) {
-        //printf("Client disconnected or recv error\n");
-
-        if(errno != EAGAIN && errno != EWOULDBLOCK)
-            sock.make_invalid();
-
-        return std::vector<char>();
-    }
-
-    buf[num] = '\0';
-
-    std::vector<char> ret(buf, buf + num);
-
-    return ret;
-}*/
-
-/*inline
-std::vector<char> tcp_recv_amount(tcp_sock& sock, int length)
-{
-    constexpr int MAXDATASIZE = 10000;
-    static char buf[MAXDATASIZE];
-
-    int num = -1;
-
-    if ((num = recv(sock.get(), buf, length, MSG_WAITALL)) == -1) {
-        //printf("Client disconnected or recv error\n");
-
-        if(errno != EAGAIN && errno != EWOULDBLOCK)
-            sock.make_invalid();
-
-        if(errno == EWOULDBLOCK)
-        {
-            printf("well, i've messed up the sockets\n");
-        }
-
-        return std::vector<char>();
-    }
-
-    buf[num] = '\0';
-
-    std::vector<char> ret(buf, buf + num);
-
-    return ret;
-}*/
-
 inline
 bool networking_init()
 {
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2,2), &wsaData);
 }
-
-/*inline
-tcp_sock tcp_host(const std::string& serverport = SERVERPORT)
-{
-    WSADATA wsaData;
-    WSAStartup(MAKEWORD(2,2), &wsaData);
-
-    int sockfd;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    //char s[INET6_ADDRSTRLEN];
-
-    char yes = 1;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET; // set to AF_INET to force IPv4
-    hints.ai_socktype = SOCK_STREAM;
-    hints.ai_flags = AI_PASSIVE; // use my IP
-
-    if ((rv = getaddrinfo(NULL, serverport.c_str(), &hints, &servinfo)) != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-        exit(1);
-    }
-
-    // loop through all the results and bind to the first we can
-    for(p = servinfo; p != NULL; p = p->ai_next) {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            perror("listener: socket");
-            continue;
-        }
-
-        setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
-
-        if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            closesocket(sockfd);
-            perror("listener: bind");
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        fprintf(stderr, "listener: failed to bind socket\n");
-        exit(2);
-    }
-
-    freeaddrinfo(servinfo);
-
-    if (listen(sockfd, SOMAXCONN) == -1) {
-        perror("listen");
-        exit(1);
-    }
-
-    return tcp_sock(sockfd);
-}*/
 
 inline
 udp_sock udp_host(const std::string& serverport = SERVERPORT)
@@ -745,7 +489,9 @@ udp_sock udp_host(const std::string& serverport = SERVERPORT)
 
     if (p == NULL) {
         fprintf(stderr, "listener: failed to bind socket\n");
-        exit(2);
+        udp_sock bad;
+        bad.make_invalid();
+        return bad;
     }
 
     freeaddrinfo(servinfo);
@@ -880,93 +626,6 @@ struct sock_info
         return sock;
     }
 };
-
-///this will eventually be a timeout delay
-///hoo boy, so i'm going to need to return the socket pretimeout, and then poll it for
-///connection status, along with a clock, and then allow it to timeout when the delay has been exceeded
-/*inline
-sock_info tcp_connect(const std::string& address, const std::string& port, long int seconds = 0, long int microseconds = 0)
-{
-    static bool loaded = false;
-
-    if(!loaded)
-    {
-        WSADATA wsaData;
-        WSAStartup(MAKEWORD(2,2), &wsaData);
-
-        loaded = true;
-    }
-
-    int sockfd = -1;
-    struct addrinfo hints, *servinfo, *p;
-    int rv;
-    bool blocking = seconds == 0 && microseconds == 0;
-
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((rv = getaddrinfo(address.c_str(), port.c_str(), &hints, &servinfo)) != 0) {
-        printf("getaddrinfo: %s\n", gai_strerror(rv));
-        return -1;
-    }
-
-    for(p = servinfo; p != NULL; p = p->ai_next)
-    {
-        if ((sockfd = socket(p->ai_family, p->ai_socktype,
-                p->ai_protocol)) == -1) {
-            printf("client: socket\n");
-            continue;
-        }
-
-        ///if its a blocking socket, set it to block
-        ///otherise set it to non block
-        if(!sock_set_non_blocking(sockfd, !blocking))
-        {
-            closesocket(sockfd);
-            continue;
-        }
-
-        if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            //printf("%i\n", WSAGetLastError());
-            //printf("client: connect\n");
-            //closesocket(sockfd);
-            //continue;
-        }
-
-        ///always set blocking
-        if(!sock_set_non_blocking(sockfd, false))
-        {
-            closesocket(sockfd);
-            continue;
-        }
-
-        if(!blocking)
-            return sock_info(sockfd, seconds, microseconds);
-
-        if(!sock_writable(sockfd, seconds, microseconds))
-        {
-            printf("Timeout\n");
-            closesocket(sockfd);
-            continue;
-        }
-
-        break;
-    }
-
-    if (p == NULL) {
-        printf("client: failed to connect\n");
-        return -1;
-    }
-
-    return sock_info(sockfd, seconds, microseconds);
-}
-
-inline
-sock_info tcp_connect(const std::string& address, long int seconds = 0, long int microseconds = 0)
-{
-    return tcp_connect(address, SERVERPORT, seconds, microseconds);
-}*/
 
 struct byte_vector
 {
