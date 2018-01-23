@@ -117,9 +117,11 @@ struct udp_sock
 
         int ret = getsockname(sock, (sockaddr*)&addr, &found_size);
 
-        int theirport = ntohs(((sockaddr_in*)&addr)->sin_port);
+        in_addr inaddr = ((sockaddr_in*)&addr)->sin_addr;
 
-        return std::string(std::to_string(theirport));
+        char* localIP = inet_ntoa(inaddr);
+
+        return std::string(localIP);
     }
 
     std::string get_host_port()
@@ -185,6 +187,40 @@ std::string get_addr_port(sockaddr_storage& addr)
     int theirport = ntohs(((sockaddr_in*)&addr)->sin_port);
 
     return std::string(std::to_string(theirport));
+}
+
+inline
+sockaddr_storage get_sockaddr_from(const std::string& ip, const std::string& port)
+{
+    int portid = atoi(port.c_str());
+    unsigned long addr = inet_addr(ip.c_str());
+
+    struct addrinfo hints, *servinfo;
+    int rv;
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    sockaddr_storage ret;
+    memset(&ret, 0, sizeof(sockaddr_storage));
+
+    if ((rv = getaddrinfo(ip.c_str(), port.c_str(), &hints, &servinfo)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+        return sockaddr_storage();
+    }
+
+    /*for(addrinfo* p = servinfo; p != nullptr; p = p->ai_next) {
+        sockaddr_in* ipv4 = (sockaddr_in*)p->ai_addr;
+
+        memcpy(&ret, ipv4, sizeof(sockaddr_in));
+    }*/
+
+    memcpy(&ret, servinfo->ai_addr, servinfo->ai_addrlen);
+
+    freeaddrinfo(servinfo);
+
+    return ret;
 }
 
 inline
