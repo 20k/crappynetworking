@@ -2,7 +2,9 @@
 
 #include <string>
 #include <vector>
+#ifdef NO_SFML
 #include <SFML/System.hpp>
+#endif
 
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
@@ -586,6 +588,7 @@ udp_sock udp_getsocket()
     return udp_sock(sock);
 }
 
+#ifdef NO_SFML
 struct sock_info
 {
     int sock;
@@ -662,6 +665,7 @@ struct sock_info
         return sock;
     }
 };
+#endif
 
 struct byte_vector
 {
