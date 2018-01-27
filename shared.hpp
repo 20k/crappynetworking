@@ -6,8 +6,10 @@
 #include <SFML/System.hpp>
 #endif
 
+#ifdef _WIN32
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
+#endif // _WIN32
 #include <assert.h>
 
 #define SERVERPORT "6950"
@@ -484,15 +486,16 @@ int udp_send_to(udp_sock& sock, const std::vector<char>& data, const sockaddr* t
 inline
 bool networking_init()
 {
+    #ifdef _WIN32
     WSADATA wsaData;
     WSAStartup(MAKEWORD(2,2), &wsaData);
+    #endif // _WIN32
 }
 
 inline
 udp_sock udp_host(const std::string& serverport = SERVERPORT)
 {
-    WSADATA wsaData;
-    WSAStartup(MAKEWORD(2,2), &wsaData);
+    networking_init();
 
     int sockfd;
     struct addrinfo hints, *servinfo, *p;
