@@ -19,6 +19,7 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <netdb.h>
+#include <unistd.h>
 #define CLOSE(x) close(x)
 #endif
 
