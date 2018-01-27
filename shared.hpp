@@ -11,9 +11,8 @@
 #include <ws2tcpip.h>
 #else
 #include <sys/socket.h>
-#include <sys/types.h>          /* See NOTES */
-       #include <sys/socket.h>
-
+#include <sys/types.h>
+#include <sys/socket.h>
 #endif
 
 #include <assert.h>
