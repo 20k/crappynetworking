@@ -464,7 +464,7 @@ std::vector<char> udp_receive_from(udp_sock& sock, sockaddr_storage* store, int*
 
     //*len = sizeof(sockaddr_storage);
 
-    int llen = sizeof(sockaddr_storage);
+    socklen_t llen = sizeof(sockaddr_storage);
 
     int num = -1;
 
@@ -601,8 +601,8 @@ udp_sock udp_getsocket()
 {
     int sock = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    if(sock == INVALID_SOCKET)
-        printf("error");
+    //if(sock == INVALID_SOCKET)
+    //    printf("error");
 
     return udp_sock(sock);
 }
