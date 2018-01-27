@@ -2,6 +2,8 @@
 
 #include <string>
 #include <vector>
+#include <cstring>
+
 #ifdef NO_SFML
 #include <SFML/System.hpp>
 #endif
@@ -9,11 +11,15 @@
 #ifdef _WIN32
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
+#define CLOSE(x) closesocket(x)
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#define CLOSE(x) close(x)
 #endif
 
 #include <assert.h>
@@ -76,7 +82,7 @@ struct udp_sock
 
     void close()
     {
-        closesocket(sock);
+        CLOSE(sock);
 
         make_invalid();
     }
@@ -88,7 +94,7 @@ struct udp_sock
 
         sockaddr_storage addr;
 
-        int found_size = sizeof(addr);
+        socklen_t found_size = sizeof(addr);
 
         int ret = getpeername(sock, (sockaddr*)&addr, &found_size);
 
@@ -107,7 +113,7 @@ struct udp_sock
 
         sockaddr_storage addr;
 
-        int found_size = sizeof(addr);
+        socklen_t found_size = sizeof(addr);
 
         int ret = getpeername(sock, (sockaddr*)&addr, &found_size);
 
@@ -123,7 +129,7 @@ struct udp_sock
 
         sockaddr_storage addr;
 
-        int found_size = sizeof(addr);
+        socklen_t found_size = sizeof(addr);
 
         int ret = getsockname(sock, (sockaddr*)&addr, &found_size);
 
@@ -141,7 +147,7 @@ struct udp_sock
 
         sockaddr_storage addr;
 
-        int found_size = sizeof(addr);
+        socklen_t found_size = sizeof(addr);
 
         int ret = getsockname(sock, (sockaddr*)&addr, &found_size);
 
@@ -154,7 +160,7 @@ struct udp_sock
     {
         sockaddr_storage addr;
 
-        int found_size = sizeof(addr);
+        socklen_t found_size = sizeof(addr);
 
         getpeername(sock, (sockaddr*)&addr, &found_size);
 
@@ -526,7 +532,7 @@ udp_sock udp_host(const std::string& serverport = SERVERPORT)
         }
 
         if (bind(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-            closesocket(sockfd);
+            CLOSE(sockfd);
             perror("listener: bind");
             continue;
         }
@@ -662,7 +668,7 @@ struct sock_info
     void close()
     {
         if(sock != -1)
-            closesocket(sock);
+            CLOSE(sock);
     }
 
     int get()
