@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <stdint.h>
 
 #ifdef NO_SFML
 #include <SFML/System.hpp>
@@ -11,7 +12,7 @@
 #ifdef _WIN32
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
-#define CLOSE(x) closesocket(x)
+#define CLOSE(x) ::closesocket(x)
 #else
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -20,7 +21,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
-#define CLOSE(x) close(x)
+#define CLOSE(x) ::close(x)
 #endif
 
 #include <assert.h>
@@ -240,6 +241,7 @@ sockaddr_storage get_sockaddr_from(const std::string& ip, const std::string& por
     return ret;
 }
 
+#if 0
 inline
 bool sock_set_non_blocking(udp_sock& sock, int is_non_blocking)
 {
@@ -265,6 +267,7 @@ bool sock_set_non_blocking(int sock, int is_non_blocking)
 
     return sock_set_non_blocking(s, is_non_blocking);
 }
+#endif
 
 inline
 bool sock_readable(udp_sock& sock)
@@ -281,7 +284,7 @@ bool sock_readable(udp_sock& sock)
     tmo.tv_usec=0;
 
     FD_ZERO(&fds);
-    FD_SET((UINT32)sval, &fds);
+    FD_SET((uint32_t)sval, &fds);
 
     select(sval+1, &fds, NULL, NULL, &tmo);
 
@@ -303,7 +306,7 @@ bool sock_writable(udp_sock& sock, long seconds = 0, long milliseconds = 0)
     tmo.tv_usec=milliseconds;
 
     FD_ZERO(&fds);
-    FD_SET((UINT32)sval, &fds);
+    FD_SET((uint32_t)sval, &fds);
 
     select(sval+1, NULL, &fds, NULL, &tmo);
 
