@@ -10,9 +10,10 @@
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
 #else
-#include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
 #endif
 
 #include <assert.h>
