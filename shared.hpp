@@ -9,7 +9,13 @@
 #ifdef _WIN32
 #define _WIN32_WINNT 0x601
 #include <ws2tcpip.h>
-#endif // _WIN32
+#else
+#include <sys/socket.h>
+#include <sys/types.h>          /* See NOTES */
+       #include <sys/socket.h>
+
+#endif
+
 #include <assert.h>
 
 #define SERVERPORT "6950"
